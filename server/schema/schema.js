@@ -1,4 +1,6 @@
-const { clients, projects } = require("../sampleData.js");
+//Mongoose Models
+const Project = require("../models/Project");
+const Client = require("../models/Client");
 
 //Array destructure
 const {
@@ -7,6 +9,7 @@ const {
   GraphQLString,
   GraphQLSchema,
   GraphQLList,
+  GraphQLNonNull,
 } = require("graphql");
 
 //Type definition for Client
@@ -31,7 +34,7 @@ const ProjectType = new GraphQLObjectType({
     client: {
       type: ClientType,
       resolve: (parent, args) => {
-        return clients.find((client) => client.id === parent.clientId);
+        return Client.findById(parent.clientId);
       },
     },
   }),
@@ -46,7 +49,7 @@ const RootQuery = new GraphQLObjectType({
       type: new GraphQLList(ClientType), //Type definition of what query will be
       resolve: (parent, args) => {
         //Is the response after the query has done
-        return clients;
+        return Client.find();
       },
     },
     //Fetch specific client prior to id
@@ -55,14 +58,14 @@ const RootQuery = new GraphQLObjectType({
       args: { id: { type: GraphQLID } }, // Args is for handling the arguement into query client(id:"1"){}
       resolve(parent, args) {
         // resolver is the response callback after query has been made.
-        return clients.find((client) => client.id === args.id); //Clients is the object data we are searching through
+        return Client.findById(args); //Clients is the object data we are searching through
       },
     },
     //Fetch every Projects.
     projects: {
       type: new GraphQLList(ProjectType),
       resolve: (parent, args) => {
-        return projects;
+        return Project.find();
       },
     },
     //Fetch single project prior to ID
@@ -70,7 +73,31 @@ const RootQuery = new GraphQLObjectType({
       type: ProjectType,
       args: { id: { type: GraphQLID } },
       resolve(parent, args) {
-        return projects.find((project) => project.id === args.id);
+        return Project.findById(args.id);
+      },
+    },
+  },
+});
+
+//Mutations
+
+const mutation = new GraphQLObjectType({
+  name: "Mutation",
+  fields: {
+    addClient: {
+      type: ClientType,
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        email: { type: GraphQLNonNull(GraphQLString) },
+        phone: { type: GraphQLNonNull(GraphQLString) },
+      },
+      resolve(parent, args) {
+        const client = new Client({
+          name: args.name,
+          email: args.email,
+          phone: args.phone,
+        });
+        return client.save();
       },
     },
   },
@@ -78,4 +105,5 @@ const RootQuery = new GraphQLObjectType({
 
 module.exports = new GraphQLSchema({
   query: RootQuery,
+  mutation,
 });
